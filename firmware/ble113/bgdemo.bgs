@@ -10,10 +10,11 @@ const CMD_GET_BUFFER_USAGE_LOW_BYTE=7
 const CMD_GET_BUFFER_USAGE_HIGH_BYTE=8
 
 dim tmp(1)
-dim buf(128)
+dim input_buf(128)
 dim buf_len
 dim buf_idx
 dim name(32)
+dim pkt_count
 dim name_len
 dim psize
 dim out_buf(128)
@@ -24,7 +25,9 @@ dim result
 dim channel
 dim tlen
 dim bytes_to_send
-dim packet_count
+dim tmp_count
+dim led_toggle
+
 
 #variable to save handle
 dim batconn_handle
@@ -69,7 +72,6 @@ event system_boot(major,minor,patch,build,ll_version,protocol,hw)
 	call hardware_spi_transfer(0,2,"\x05\x00")
 	call hardware_io_port_write(0, $10, $10) # slave select high
 	
-
 	call attributes_write(xgatt_name, 0, name_len, name(0:name_len))
 	call attributes_write(xgatt_custom_name, 0, name_len, name(0:name_len))
 
@@ -93,6 +95,16 @@ procedure write_tx_packet()
 	call hardware_io_port_write(0, $10, $10) # ss hi
 end
 
+procedure toggle_green_led()
+  if led_toggle = 0 then
+    call hardware_io_port_write(0, $1, $1)
+    led_toggle = 1
+  else
+    call hardware_io_port_write(0, $1, $0)
+    led_toggle = 0
+  end if
+end
+
 procedure read_rx_packet()
   buf_len = 0  
   # poll cc1110 for packet length.  Returns 0 if no packets available
@@ -101,18 +113,20 @@ procedure read_rx_packet()
   call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,tmp(0))
   psize = tmp(0)
   
-  if psize > 0
+  tmp_count = 0
+  
+  if psize > 0 && psize < 126
 	 # ask cc1110 for packet rssi.
 	call hardware_spi_transfer(0,1,"\x10")
-	call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,buf(0))
+	call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,input_buf(0))
 	 # ask cc1110 for packet number.
-	buf(1) = 77
+	input_buf(1) = 77
 	call hardware_spi_transfer(0,1,"\x07")
-	call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,buf(1))
+	call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,input_buf(1))
 	buf_idx = 2
 	while buf_idx < psize + 2
-		call hardware_spi_transfer(0,1,"\x04")
-		call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,buf(buf_idx))
+		call hardware_spi_transfer(0,1,"\x04")(result,channel,tlen,input_buf(buf_idx:1))
+		call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,input_buf(buf_idx:1))
 		buf_idx = buf_idx + 1
 	end while
 	buf_len = buf_idx
@@ -120,8 +134,9 @@ procedure read_rx_packet()
 	  #call hardware_io_port_write(0, 2, 2)
 	end if
   end if
- 
+
   call hardware_io_port_write(0, $10, $10)
+  
 end
   
 procedure get_buf_bytes(connection, offset, maxsize)
@@ -132,7 +147,7 @@ procedure get_buf_bytes(connection, offset, maxsize)
   if bytes_to_send > maxsize then
     bytes_to_send = maxsize
   end if
-  call attributes_user_read_response(connection,0,bytes_to_send,buf(offset:bytes_to_send))
+  call attributes_user_read_response(connection,0,bytes_to_send,input_buf(offset:bytes_to_send))
   if offset + bytes_to_send >= buf_len then
     buf_len = 0
   end if
@@ -224,33 +239,38 @@ event hardware_soft_timer(handle)
   call hardware_spi_transfer(0,1,"\x0b")
   call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,tmp(0))
   call hardware_io_port_write(0, $10, $10)
-  if tmp(0) != packet_count then
-    packet_count = tmp(0)
-	call attributes_write(xgatt_rx_packet_count,0,1,packet_count)
+  if tmp(0) != pkt_count then
+    pkt_count = tmp(0)
+	call attributes_write(xgatt_rx_packet_count,0,1,pkt_count)
   end if 
   
-  if packet_count > 0 then
+  if pkt_count < 0 then
+    call hardware_io_port_write(0, $1, $1)
+  end if
+  
+  if pkt_count > 0 then
     call hardware_io_port_write(0, $2, $2)
   else
     call hardware_io_port_write(0, $2, $0)
   end if
+
 end
 
 
 # Connection event listener
 event connection_status(connection, flags, address, address_type, conn_interval, timeout, latency, bonding)
-	# Device is connected. Turn on blue led
-    call hardware_io_port_write(0, $1, $1)	
+	# Device is connected. Turn on green led
+    #call hardware_io_port_write(0, $1, $1)	
 end
 
 event connection_disconnected(handle,res)
     #start advertising again after disconnection
     call gap_set_mode(gap_general_discoverable,gap_undirected_connectable)
-	# Device disconnected. Turn off blue led
-    call hardware_io_port_write(0, $1, $0)
+	# Device disconnected. Turn off green led
+    #call hardware_io_port_write(0, $1, $0)
 	
 	# Save name
-	if name_len > 0
+	if name_len > 0 then
 		call attributes_write(xgatt_name, 0, name_len, name(0:name_len))
 		call flash_ps_save($8000, name_len, name(0:name_len))
 	end if

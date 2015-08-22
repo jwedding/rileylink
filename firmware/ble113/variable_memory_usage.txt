@@ -1,4 +1,4 @@
-345
+353
 0:0	GAP_AD_FLAG_BREDR_NOT_SUPPORTED
 0:0	GAP_AD_FLAG_GENERAL_DISCOVERABLE
 0:0	GAP_AD_FLAG_LIMITED_DISCOVERABLE
@@ -55,7 +55,7 @@
 0:0	gap_non_discoverable
 0:0	gap_scan_policy_all
 0:0	gap_scan_policy_whitelist
-0:0	gap_scannable_connectable
+0:0	gap_scannable_non_connectable
 0:0	gap_undirected_connectable
 0:0	gap_user_data
 0:0	sm_bonding_key_addr_public
@@ -95,20 +95,22 @@
 0:0	CMD_GET_BUFFER_USAGE_LOW_BYTE
 0:0	CMD_GET_BUFFER_USAGE_HIGH_BYTE
 0:1	tmp
-1:128	buf
+1:128	input_buf
 129:4	buf_len
 133:4	buf_idx
 137:32	name
-169:4	name_len
-173:4	psize
-177:128	out_buf
-305:4	out_len
-309:4	out_idx
-313:4	radio_mode
-317:4	result
-321:4	channel
-325:4	tlen
-329:4	bytes_to_send
-333:4	packet_count
-337:4	batconn_handle
-341:4	batresult
+169:4	pkt_count
+173:4	name_len
+177:4	psize
+181:128	out_buf
+309:4	out_len
+313:4	out_idx
+317:4	radio_mode
+321:4	result
+325:4	channel
+329:4	tlen
+333:4	bytes_to_send
+337:4	tmp_count
+341:4	led_toggle
+345:4	batconn_handle
+349:4	batresult
