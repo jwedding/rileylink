@@ -245,15 +245,9 @@ event hardware_soft_timer(handle)
   end if 
   
   if pkt_count < 0 then
-    call hardware_io_port_write(0, $1, $1)
+    call hardware_io_port_write(0, $2, $2)
   end if
   
-  if pkt_count > 0 then
-    call hardware_io_port_write(0, $2, $2)
-  else
-    call hardware_io_port_write(0, $2, $0)
-  end if
-
 end
 
 
