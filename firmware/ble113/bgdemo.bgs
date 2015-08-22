@@ -9,8 +9,6 @@ const CMD_GET_ERROR=6
 const CMD_GET_BUFFER_USAGE_LOW_BYTE=7
 const CMD_GET_BUFFER_USAGE_HIGH_BYTE=8
 
-dim tmp(1)
-dim input_buf(128)
 dim buf_len
 dim buf_idx
 dim name(32)
@@ -27,7 +25,8 @@ dim tlen
 dim bytes_to_send
 dim tmp_count
 dim led_toggle
-
+dim tmp(1)
+dim input_buf(128)
 
 #variable to save handle
 dim batconn_handle
@@ -110,8 +109,8 @@ procedure read_rx_packet()
   # poll cc1110 for packet length.  Returns 0 if no packets available
   call hardware_io_port_write(0, $10, 0)
   call hardware_spi_transfer(0,1,"\x03")
-  call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,tmp(0))
-  psize = tmp(0)
+  call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,tmp(0:1))
+  psize = tmp(0:1)
   
   tmp_count = 0
   
@@ -120,13 +119,12 @@ procedure read_rx_packet()
 	call hardware_spi_transfer(0,1,"\x10")
 	call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,input_buf(0))
 	 # ask cc1110 for packet number.
-	input_buf(1) = 77
 	call hardware_spi_transfer(0,1,"\x07")
 	call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,input_buf(1))
 	buf_idx = 2
 	while buf_idx < psize + 2
 		call hardware_spi_transfer(0,1,"\x04")
-		call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,input_buf(0))
+		call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,input_buf(buf_idx))
 		buf_idx = buf_idx + 1
 	end while
 	buf_len = buf_idx
@@ -237,10 +235,10 @@ event hardware_soft_timer(handle)
   # poll cc1110 for packet count.
   call hardware_io_port_write(0, $10, 0)
   call hardware_spi_transfer(0,1,"\x0b")
-  call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,tmp(0))
+  call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,tmp(0:1))
   call hardware_io_port_write(0, $10, $10)
-  if tmp(0) != pkt_count then
-    pkt_count = tmp(0)
+  if tmp(0:1) != pkt_count then
+    pkt_count = tmp(0:1)
 	call attributes_write(xgatt_rx_packet_count,0,1,pkt_count)
   end if 
   
