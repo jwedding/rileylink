@@ -126,7 +126,7 @@ procedure read_rx_packet()
 	buf_idx = 2
 	while buf_idx < psize + 2
 		call hardware_spi_transfer(0,1,"\x04")
-		call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,input_buf(buf_idx))
+		call hardware_spi_transfer(0,1,"\x00")(result,channel,tlen,input_buf(0))
 		buf_idx = buf_idx + 1
 	end while
 	buf_len = buf_idx
